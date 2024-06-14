@@ -1,160 +1,126 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <assert.h>
 
+#define ARENA_IMPLEMENTATION
+#include "external/arena.h"
+
+static Arena default_arena = {0};
+
 #define FIELD_X 7
 #define FIELD_Y 6
-#define FIELD_SZ FIELD_X*FIELD_Y
-#define print_field(field) for(int i=0;i<FIELD_SZ;i++){printf("%d ", field[i]); if(i%FIELD_X==FIELD_X-1) printf("\n"); }
 
-#define DEPTH 3
-
-#define QUEUE 50
-#define BATCH_SIZE 4
-
-
-struct Node {
-    uint8_t *field;
+typedef struct Node {
+    uint8_t field[FIELD_X][FIELD_Y];
     uint8_t figure;
     struct Node *children[FIELD_X];
-};
+} Node;
 
-int ipow(int base, int exp)
+void *context_alloc(int size)
 {
-    int result = 1;
-    for (;;)
-    {
-        if (exp & 1)
-            result *= base;
-        exp >>= 1;
-        if (!exp)
-            break;
-        base *= base;
-    }
-
-    return result;
+    return arena_alloc(&default_arena, sizeof(Node)*size);
 }
 
-void expand(int size, uint8_t *batch, uint8_t *figure, uint8_t *result, bool *valid);
+#define QUEUE 20
+Node *queue[QUEUE];
+int head = 0, tail = 0;
+
+void inqueue(Node *new)
+{
+    queue[head++%QUEUE] = new;
+    assert(head-QUEUE<tail);
+}
+
+Node *dequeue()
+{
+    if(tail<head)
+        return queue[tail++%head];
+    return NULL;
+}
+
+#define BATCH 4
+uint8_t batch_fields[BATCH][FIELD_X][FIELD_Y];
+uint8_t batch_figures[BATCH];
+bool valid[BATCH][FIELD_X];
+uint8_t results[BATCH][FIELD_X][FIELD_X][FIELD_Y];
+
+void batch_load(int i, uint8_t nfield[FIELD_X][FIELD_Y], uint8_t nfigure)
+{
+   memcpy(*batch_fields[i], nfield, FIELD_X*FIELD_Y);
+   batch_figures[i] = nfigure;
+}
+
+void col_expand(int idx, int col)
+{
+    uint8_t (*input)[FIELD_X][FIELD_Y] = &batch_fields[idx]; 
+    uint8_t (*output)[FIELD_X][FIELD_Y] = &results[idx][col]; 
+
+    memcpy(output,input, FIELD_X*FIELD_Y);
+    if((*input)[col][0] != 0)
+        return;
+    valid[idx][col] = true;
+    for(int row=0;row<FIELD_Y-1;row++){
+        if((*input)[col][row] == 0 && (*input)[col][row+1] != 0 ){
+            (*output)[col][row] = batch_figures[idx];
+            return;
+        }
+    }
+    (*output)[col][FIELD_Y-1] = batch_figures[idx];
+}
+
+static inline void print_field(uint8_t field[FIELD_X][FIELD_Y]) {
+    for(int y=0;y<FIELD_Y;y++) {
+        for(int x=0;x<FIELD_X;x++)
+            printf("%d ", field[x][y]);
+        printf("\n");
+    }
+}
 
 int main(void) {
     // Load board:
     printf("Search\n");
+    
+    Node *root = context_alloc(1);
+    root->figure = 1;
+    root->field[0][FIELD_Y-2] = 1;
+    root->field[0][FIELD_Y-1] = 2;
+    print_field(root->field);
+    inqueue(root);
 
-    uint8_t field[FIELD_SZ];
+    memset(valid, false, sizeof(valid));
 
-    FILE *f = fopen("./fields/example", "rb");
-    fseek(f, 0, SEEK_END);
-    long m = ftell(f);
-    char *buff = malloc(sizeof(char)*m);
-    fseek(f, 0, SEEK_SET);
-    fread(buff, m, 1, f);
-    int pt = 0;
-    for(int i=0;i<m;i++){
-        int fig=2;
-        switch (buff[i]){
-            case '0':
-                fig = 0;
-                break;
-            case '1':
-                fig = 1;
-                break;
-            case '2':
-                fig = 2;
-                break;
-            case '\n':
-                continue;
-            default:
-                printf("Wrong symbol");
-                return 1;
-        }
-        field[pt++] = fig;
+    //Send batch
+    for(int i=0;i<BATCH;i++) {
+        Node *next = dequeue();
+        if(next == NULL)
+            break;
+        batch_load(i, root->field, root->figure);
+
+        for(int col=0;col<FIELD_X;col++)
+            col_expand(i, col);
     }
 
-    if(f) fclose(f);
+    //Process results
+    //for(int i=0;i<BATCH;i++){
+    //    for(int col=0;col<FIELD_X;col++){
+    //        if(valid[i][col]){
+    //            Node *child = context_alloc(1);
+    //            child->figure = 2-(root->figure>>1);
+    //            //memcpy(&child->field, results[i][col], FIELD_X*FIELD_Y);
+    //            root->children[col] = child;
+    //        }
+    //    }
+    //}
+    printf("\n");
+    //print_field(root->children[0]->field);
+    print_field(results[0][0]);
+    printf("\n");
+    print_field(results[0][2]);
 
     // Tree Search:
-    struct Node queue[QUEUE];
-    uint8_t batch[FIELD_SZ*BATCH_SIZE];
-    uint8_t result[FIELD_SZ*BATCH_SIZE*FIELD_X];
-    uint8_t figure[BATCH_SIZE];
-    struct Node *batch_nodes[BATCH_SIZE];
-    bool valid[BATCH_SIZE*FIELD_X];
-
-    memset(valid, false, BATCH_SIZE*FIELD_X);
-
-    int head = 0;
-    int tail = 0;
-    struct Node root;
-    root.field = field;
-    root.figure = 1;
-
-    queue[tail++%QUEUE] = root;
-    assert(tail != head);
     
-    int sz = 0;
-    for(int i=0;i<BATCH_SIZE;i++){
-        if(head == tail)
-            break;
-        sz++;
-        struct Node *first = queue+(head++%QUEUE);
-        batch_nodes[i] = first;
-        figure[i] = first->figure;
-        memcpy(batch+i*FIELD_SZ, first->field, FIELD_SZ);
-    }
-
-    print_field(batch);
-    expand(sz, batch, figure, result, valid);
-    for(int i=0;i<sz*FIELD_X;i++){
-        if(!valid[i])
-            continue;
-
-        struct Node *new = malloc(sizeof(struct Node));
-        struct Node *parent = batch_nodes[i/FIELD_X];
-        new->figure = (2-(parent->figure>>1));
-        new->field = malloc(sizeof(uint8_t)*FIELD_SZ);
-        memcpy(new->field, result+i, FIELD_SZ);
-        uint8_t chid = i & ((1 << FIELD_X)-1);
-        parent->children[chid] = new;
-
-        printf("%d chid\n", chid);
-
-        queue[tail++%QUEUE] = *new;
-        assert(tail != head);
-
-    }
-    printf("\n");
-    print_field(result);
-    print_field(result);
-    
+    arena_free(&default_arena);
     return 0;
 }
 
-void expand(int size, uint8_t *batch, uint8_t *figure, uint8_t *result, bool *valid) {
-    for(int i=0;i<size;i++){
-        uint8_t *curr_field=batch+i*FIELD_SZ;
-        
-        for(int j=0;j<FIELD_X;j++){
-            if(curr_field[j] != 0)
-                continue;
-
-            valid[i*FIELD_X+j] = true;
-            uint8_t *res_field = result+i*FIELD_SZ*FIELD_X+j*FIELD_SZ;
-            memcpy(res_field, curr_field, FIELD_SZ);
-            
-            int cell, ncell;
-            for(int k=0;k<FIELD_Y-1;k++){
-                cell = j+FIELD_X*k;
-                ncell = j+FIELD_X*(k+1);
-                if(res_field[cell] == 0 && res_field[ncell] != 0)
-                    res_field[cell] = figure[i];
-            }
-            if(res_field[ncell] == 0)
-                res_field[j+(FIELD_Y-1)*FIELD_X] = figure[i];
-
-        }
-    }
-}

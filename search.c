@@ -22,7 +22,7 @@ void *context_alloc(int size)
     return arena_alloc(&default_arena, sizeof(Node)*size);
 }
 
-#define QUEUE 20
+#define QUEUE 700
 Node *queue[QUEUE];
 int head = 0, tail = 0;
 
@@ -42,6 +42,8 @@ Node *dequeue()
 #define BATCH 4
 uint8_t batch_fields[BATCH][FIELD_X][FIELD_Y];
 uint8_t batch_figures[BATCH];
+Node *batch_nodes[BATCH];
+
 bool valid[BATCH][FIELD_X];
 uint8_t results[BATCH][FIELD_X][FIELD_X][FIELD_Y];
 
@@ -88,35 +90,40 @@ int main(void) {
     print_field(root->field);
     inqueue(root);
 
-    memset(valid, false, sizeof(valid));
+    for(int epoch=0;epoch<25;epoch++){
+        memset(valid, false, sizeof(valid));
+        //Send batch
+        for(int i=0;i<BATCH;i++) {
+            Node *next = dequeue();
+            if(next == NULL)
+                break;
+            batch_load(i, next->field, next->figure);
+            batch_nodes[i] = next;
 
-    //Send batch
-    for(int i=0;i<BATCH;i++) {
-        Node *next = dequeue();
-        if(next == NULL)
-            break;
-        batch_load(i, root->field, root->figure);
+            for(int col=0;col<FIELD_X;col++)
+                col_expand(i, col);
+        }
 
-        for(int col=0;col<FIELD_X;col++)
-            col_expand(i, col);
+        //Process results
+        for(int i=0;i<BATCH;i++){
+            for(int col=0;col<FIELD_X;col++){
+                if(valid[i][col]){
+                    Node *parrent = batch_nodes[i];
+                    Node *child = context_alloc(1);
+                    child->figure = 2-(parrent->figure>>1);
+                    memcpy(&child->field, results[i][col], FIELD_X*FIELD_Y);
+                    parrent->children[col] = child;
+                    inqueue(child);
+                }
+            }
+        }
     }
-
-    //Process results
-    //for(int i=0;i<BATCH;i++){
-    //    for(int col=0;col<FIELD_X;col++){
-    //        if(valid[i][col]){
-    //            Node *child = context_alloc(1);
-    //            child->figure = 2-(root->figure>>1);
-    //            //memcpy(&child->field, results[i][col], FIELD_X*FIELD_Y);
-    //            root->children[col] = child;
-    //        }
-    //    }
-    //}
     printf("\n");
-    //print_field(root->children[0]->field);
+    //print_field(root->children[0]->children[0]->field);
+    printf("\n");
+    //print_field(root->children[1]->field);
     print_field(results[0][0]);
-    printf("\n");
-    print_field(results[0][2]);
+
 
     // Tree Search:
     

@@ -3,26 +3,10 @@
 #include <stdbool.h>
 #include <assert.h>
 
-#define ARENA_IMPLEMENTATION
-#include "external/arena.h"
-
-static Arena default_arena = {0};
-
-#define FIELD_X 7
-#define FIELD_Y 6
-
-typedef struct Node {
-    uint8_t field[FIELD_X][FIELD_Y];
-    uint8_t figure;
-    struct Node *children[FIELD_X];
-} Node;
-
-void *context_alloc(int size)
-{
-    return arena_alloc(&default_arena, sizeof(Node)*size);
-}
+#include "node.h"
 
 #define QUEUE 700
+
 Node *queue[QUEUE];
 int head = 0, tail = 0;
 
@@ -79,11 +63,12 @@ static inline void print_field(uint8_t field[FIELD_X][FIELD_Y]) {
     }
 }
 
-int main(void) {
+
+int search(Node *root, Arena *arena) {
     // Load board:
     printf("Search\n");
     
-    Node *root = context_alloc(1);
+    //Node *root = context_alloc(1);
     root->figure = 1;
     root->field[0][FIELD_Y-2] = 1;
     root->field[0][FIELD_Y-1] = 2;
@@ -109,7 +94,7 @@ int main(void) {
             for(int col=0;col<FIELD_X;col++){
                 if(valid[i][col]){
                     Node *parrent = batch_nodes[i];
-                    Node *child = context_alloc(1);
+                    Node *child = arena_alloc(arena, sizeof(Node));//context_alloc(1);
                     child->figure = 2-(parrent->figure>>1);
                     memcpy(&child->field, results[i][col], FIELD_X*FIELD_Y);
                     parrent->children[col] = child;
@@ -126,8 +111,6 @@ int main(void) {
 
 
     // Tree Search:
-    
-    arena_free(&default_arena);
     return 0;
 }
 

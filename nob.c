@@ -23,6 +23,7 @@ int main(int argc, char **argv) {
     NOB_GO_REBUILD_URSELF(argc, argv);
 
     const char *inputs[] = {
+        "search.c",
         "graph.c"
     };
     Nob_Cmd cmd = {0};

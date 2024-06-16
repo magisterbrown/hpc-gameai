@@ -1,32 +1,31 @@
 #include <gvc.h>
 
-int main(int argc, char **argv)
+int main(void)
 {
     Agraph_t *g;
     Agnode_t *n, *m;
-    Agedge_t *e;
-    Agsym_t *a;
+    //Agsym_t *a;
     GVC_t *gvc;
     /* set up a graphviz context */
     gvc = gvContext();
-    /* parse command line args - minimally argv[0] sets layout engine */
-    char *args[] = { "dot" };
-    gvParseArgs(gvc, sizeof(args)/sizeof(*args), args);
+    ///* parse command line args - minimally argv[0] sets layout engine */
+    char *args[] = {"dot", "-ograph.svg", "-Tsvg" , ""};
+    gvParseArgs(gvc, 3, args);
     //gvParseArgs(gvc, 1, args);
-    /* Create a simple digraph */
+    ///* Create a simple digraph */
     g = agopen("g", Agdirected, NULL);
-    n = agnode(g, "asdasdn\nsdsdsd", 1);
+    n = agnode(g, "fuuu", 1);
     m = agnode(g, "m", 1);
-    e = agedge(g, n, m, 0, 1);
-    /* Set an attribute - in this case one that affects the visible rendering */
-    agsafeset(n, "color", "red", "");
-    /* Compute a layout using layout engine from command line args */
+    agedge(g, n, m, 0, 1);
+    ///* Set an attribute - in this case one that affects the visible rendering */
+    //agsafeset(n, "color", "red", "");
+    ///* Compute a layout using layout engine from command line args */
     gvLayoutJobs(gvc, g);
-    /* Write the graph according to -T and -o options */
+    /////* Write the graph according to -T and -o options */
     gvRenderJobs(gvc, g);
-    /* Free layout data */
+    /////* Free layout data */
     gvFreeLayout(gvc, g);
-    /* Free graph structures */
+    /////* Free graph structures */
     agclose(g);
     /* close output file, free context, and return number of errors */
     gvFreeContext(gvc);

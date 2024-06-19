@@ -4,14 +4,29 @@
 
 #define ARENA_IMPLEMENTATION
 #include "external/arena.h"
+
+#define FIELDST FIELD_X*(FIELD_Y+1)
 void record(Node *parrent, Agnode_t *pnode, Agraph_t *graph) {
+
+    char field[FIELDST];
+    int stpos = 0;
+    for(int y=0;y<FIELD_Y;y++) {
+        for(int x=0;x<FIELD_X;x++) 
+           field[stpos++] = parrent->field[x][y]+48; 
+        field[stpos++] = '\n';
+            
+    }
+
+    field[FIELDST-1] = '\0';
+    agset(pnode, "label", field);
+
     for(int i=0;i<FIELD_X;i++){
+
         if(parrent->children[i] != NULL){
             Agnode_t *nnode;
-            char tag[10];
-            sprintf(tag, "%d", i);
-            nnode = agnode(graph, tag, 1);
+            nnode = agnode(graph, NULL, 1);
             agedge(graph, pnode, nnode, 0, 1);
+            record(parrent->children[i],  nnode, graph); 
         }
     }
 }
@@ -29,6 +44,8 @@ int main(void) {
     g = agopen("search", Agdirected, NULL);
     rnode = agnode(g, "root", 1);
     agsafeset(rnode, "color", "red", "");
+    agsafeset(rnode, "label", "Rooter", "");
+    agsafeset(rnode, "shape", "box", "box");
    
     record(root, rnode, g);
 

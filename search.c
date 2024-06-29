@@ -55,24 +55,15 @@ void col_expand(int idx, int col)
     (*output)[col][FIELD_Y-1] = batch_figures[idx];
 }
 
-static inline void print_field(uint8_t field[FIELD_X][FIELD_Y]) {
-    for(int y=0;y<FIELD_Y;y++) {
-        for(int x=0;x<FIELD_X;x++)
-            printf("%d ", field[x][y]);
-        printf("\n");
-    }
-}
 
 
 int search(Node *root, Arena *arena) {
     // Load board:
-    printf("Search\n");
     
     //Node *root = context_alloc(1);
     root->figure = 1;
     root->field[0][FIELD_Y-2] = 1;
     root->field[0][FIELD_Y-1] = 2;
-    print_field(root->field);
     inqueue(root);
 
     for(int epoch=0;epoch<25;epoch++){
@@ -103,12 +94,6 @@ int search(Node *root, Arena *arena) {
             }
         }
     }
-    printf("\n");
-    //print_field(root->children[0]->children[0]->field);
-    printf("\n");
-    //print_field(root->children[1]->field);
-    print_field(results[0][0]);
-
 
     // Tree Search:
     return 0;

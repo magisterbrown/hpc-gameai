@@ -7,33 +7,21 @@ void cflags(Nob_Cmd *cmd)
     nob_cmd_append(cmd, "-Wall", "-Wextra", "-ggdb");
 }
 
-void visualize(Nob_Cmd *cmd)
-{
-    char *libdirs[] = {
-        "cgraph",
-        "gvc",
-    };
-    for(int i=0;i<NOB_ARRAY_LEN(libdirs);i++) {
-        nob_cmd_append(cmd, nob_temp_sprintf("-l%s", libdirs[i]));
-    }
-}
 
 
 int main(int argc, char **argv) {
     NOB_GO_REBUILD_URSELF(argc, argv);
 
     const char *inputs[] = {
-        "search.c",
-        "graph.c"
+        //"search.c",
+        //"graph.c"
+        "kernel.cu"
     };
     Nob_Cmd cmd = {0};
 
-    nob_cmd_append(&cmd, "cc", "-o", "run");
-    cflags(&cmd);
+    nob_cmd_append(&cmd, "nvcc", "-o", "run");
+    //cflags(&cmd);
     nob_da_append_many(&cmd, inputs, NOB_ARRAY_LEN(inputs));
-    nob_cmd_append(&cmd, "-I/usr/local/include/graphviz");
-    nob_cmd_append(&cmd, "-L/usr/local/lib");
-    visualize(&cmd);
     if(nob_cmd_run_sync(cmd)){
         Nob_Cmd cmd = {0};
         nob_cmd_append(&cmd, "./run");

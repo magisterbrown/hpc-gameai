@@ -55,27 +55,16 @@ void col_expand(int idx, int col)
     (*output)[col][FIELD_Y-1] = batch_figures[idx];
 }
 
-static inline void print_field(uint8_t field[FIELD_X][FIELD_Y]) {
-    for(int y=0;y<FIELD_Y;y++) {
-        for(int x=0;x<FIELD_X;x++)
-            printf("%d ", field[x][y]);
-        printf("\n");
-    }
-}
-
-
 int search(Node *root, Arena *arena) {
     // Load board:
-    printf("Search\n");
     
     //Node *root = context_alloc(1);
-    root->figure = 1;
-    root->field[0][FIELD_Y-2] = 1;
-    root->field[0][FIELD_Y-1] = 2;
-    print_field(root->field);
+    //root->figure = 1;
+    //root->field[0][FIELD_Y-2] = 1;
+    //root->field[0][FIELD_Y-1] = 2;
     inqueue(root);
 
-    for(int epoch=0;epoch<25;epoch++){
+    for(int epoch=0;epoch<5;epoch++){
         memset(valid, false, sizeof(valid));
         //Send batch
         for(int i=0;i<BATCH;i++) {
@@ -94,7 +83,7 @@ int search(Node *root, Arena *arena) {
             for(int col=0;col<FIELD_X;col++){
                 if(valid[i][col]){
                     Node *parrent = batch_nodes[i];
-                    Node *child = arena_alloc(arena, sizeof(Node));//context_alloc(1);
+                    Node *child = arena_alloc(arena, sizeof(Node));
                     child->figure = 2-(parrent->figure>>1);
                     memcpy(&child->field, results[i][col], FIELD_X*FIELD_Y);
                     parrent->children[col] = child;
@@ -103,14 +92,6 @@ int search(Node *root, Arena *arena) {
             }
         }
     }
-    printf("\n");
-    //print_field(root->children[0]->children[0]->field);
-    printf("\n");
-    //print_field(root->children[1]->field);
-    print_field(results[0][0]);
-
-
-    // Tree Search:
     return 0;
 }
 

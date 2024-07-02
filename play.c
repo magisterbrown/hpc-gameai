@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include "node.h"
 
+#define clear() printf("\033[H\033[J")
+
 int make_move(FIELD *dst, FIELD *src, int move, uint8_t fig) 
 {
     if((*src)[move][0] != 0 || move < 0 || move >= FIELD_X)
@@ -30,12 +32,24 @@ int main(void)
     int fig = 1;
     while(1)
     {
-        if(illegal)
-            printf("Illegal move\n");
         print_field(live);  
-        scanf("%d", &move);
-        printf("%d\n", move);
-        illegal = make_move(&live, &live, move, fig);
-        fig = 2-(fig>>1);
+        char user = getchar();
+        clear();
+        switch(user){
+            case 'e':
+                return 0;
+            case '\n':
+                continue;
+            case 'b':
+                printf("Back\n");
+                break;
+            default:
+                    illegal = make_move(&live, &live, (int)user-48, fig);
+                    if(illegal)
+                        printf("Illegal move\n");
+                    fig = 2-(fig>>1);
+                break;
+        }
+        
     }
 }

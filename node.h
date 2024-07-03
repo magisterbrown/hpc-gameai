@@ -2,8 +2,9 @@
 
 #include "external/arena.h"
 
-#define FIELD_X 7
-#define FIELD_Y 6
+#define FIELD_X 4
+#define FIELD_Y 3
+#define INAROW 2
 
 typedef uint8_t FIELD[FIELD_X][FIELD_Y];
 

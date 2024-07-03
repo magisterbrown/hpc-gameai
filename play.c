@@ -1,7 +1,13 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "node.h"
 
 #define clear() printf("\033[H\033[J")
+
+typedef struct Real {
+    FIELD state;
+    struct Real *prev;
+} Real;
 
 int make_move(FIELD *dst, FIELD *src, int move, uint8_t fig) 
 {
@@ -26,9 +32,10 @@ int make_move(FIELD *dst, FIELD *src, int move, uint8_t fig)
 int main(void)
 {
     FIELD live; 
+    Real *last;
+    last = malloc(sizeof(Real));
     memset(live, 0, sizeof(live));
-    int move;
-    int illegal = 0;
+    memcpy(last->state, live, sizeof(FIELD));
     int fig = 1;
     while(1)
     {
@@ -38,18 +45,28 @@ int main(void)
         switch(user){
             case 'e':
                 return 0;
-            case '\n':
-                continue;
             case 'b':
+                if(last->prev == NULL)
+                    break;
                 printf("Back\n");
+                Real *garbage = last;
+                last = last->prev;
+                memcpy(live, last->state, sizeof(FIELD));
+                free(garbage);
                 break;
             default:
-                    illegal = make_move(&live, &live, (int)user-48, fig);
-                    if(illegal)
+                    if(make_move(&live, &live, (int)user-48, fig))
                         printf("Illegal move\n");
-                    fig = 2-(fig>>1);
+                    else{
+                        Real *new;
+                        new = malloc(sizeof(Real));
+                        memcpy(new->state, live, sizeof(FIELD));
+                        new->prev = last;
+                        last = new;
+                        fig = 2-(fig>>1);
+                    }
                 break;
         }
-        
+        while(getchar() != '\n') {}
     }
 }

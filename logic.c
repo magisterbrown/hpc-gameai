@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "state.h"
+#include "shared/result.h"
 #include <string.h>
 
 #define clear() printf("\033[H\033[J")

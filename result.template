@@ -11,6 +11,6 @@ typedef struct Direction {
     uint8_t length;
 } Direction;
 
-Direction dirs[] = {
+static Direction dirs[] = {
 %s
 };

@@ -27,7 +27,6 @@ int make_move(FIELD *dst, FIELD *src, int move, uint8_t fig)
     return 0;
 }
 
-#define INAROW 3
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 int longest(FIELD *field, Direction arow, int fig) {
@@ -44,20 +43,12 @@ int longest(FIELD *field, Direction arow, int fig) {
 }
 
 int is_win(FIELD *field, int figure){
-    for(int i=0;i<FIELD_X;i++) 
-    {
-        Direction arow = {{i, 0}, {0, 1}, FIELD_Y};
-        if(longest(field, arow, figure) >= INAROW)
+    for(size_t i=0;i<sizeof(dirs)/sizeof(dirs[0]);i++)
+        if(longest(field, dirs[i], figure) >= INAROW)
             return 1;
-    }
-    for(int i=0;i<FIELD_Y;i++) 
-    {
-        Direction arow = {{0, i}, {1, 0}, FIELD_X};
-        if(longest(field, arow, figure) >= INAROW)
-            return 1;
-    }
     return 0;
 }
+
 STATE *process(STATE *state, char input)
 {
     clear();
@@ -71,7 +62,7 @@ STATE *process(STATE *state, char input)
             free(state);
             break;
         default:
-                int move = (int)input-48;
+                int move = (int)input-49;
                 if(state->field[move][0] != 0 || move < 0 || move >= FIELD_X)
                 {
                     printf("Illegal move\n");
@@ -87,7 +78,7 @@ STATE *process(STATE *state, char input)
                 next->prev = state;
                 next->figure = 2-(state->figure>>1);
 
-                make_move(&next->field, &next->field, (int)input-48, next->figure);
+                make_move(&next->field, &next->field, move, next->figure);
             break;
     }
 

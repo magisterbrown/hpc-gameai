@@ -20,34 +20,41 @@ process *hotreload()
 {
     if(handle != NULL)
         dlclose(handle);
-
-    Nob_Cmd generics_build = {0};
-    Nob_Cmd generics_run = {0};
-    nob_cmd_append(&generics_build, "cc", "generics.c", "-o", "gen");
-    nob_cmd_append(&generics_run, "./gen");
-    while(!nob_cmd_run_sync(generics_build) || !nob_cmd_run_sync(generics_run)) 
+    while(1) 
     {
-        printf("Generics build failed ENTER to redo.\n");
-        while(getchar()!='\n'){}
-    }
+        Nob_Cmd generics_run = {0};
+        nob_cmd_append(&generics_run, "./gen");
+        if (!nob_cmd_run_sync(generics_run)) 
+        {
+            printf("Generics build failed ENTER to redo.\n");
+            while(getchar()!='\n'){}
+            continue;
+        }
 
-    const char *inputs[] = {
-        "logic.c"
-    };
-    Nob_Cmd logic_cmd = {0};
-    nob_cmd_append(&logic_cmd, "cc", "-shared", "-o", LOGIC_PATH);
-    cflags(&logic_cmd);
-    nob_da_append_many(&logic_cmd, inputs, NOB_ARRAY_LEN(inputs));
-    while(!nob_cmd_run_sync(logic_cmd)){
-        printf("Logic compilation faild ENTER to redo.\n");
-        while(getchar()!='\n'){}
+        const char *inputs[] = {
+            "logic.c"
+        };
+        Nob_Cmd logic_cmd = {0};
+        nob_cmd_append(&logic_cmd, "cc", "-shared", "-o", LOGIC_PATH);
+        cflags(&logic_cmd);
+        nob_da_append_many(&logic_cmd, inputs, NOB_ARRAY_LEN(inputs));
+        if (!nob_cmd_run_sync(logic_cmd))
+        {
+            printf("Logic compilation faild ENTER to redo.\n");
+            while(getchar()!='\n'){}
+            continue;
+        }
+        handle = dlopen(LOGIC_PATH, RTLD_NOW);
+        return dlsym(handle, "process");
     }
-    handle = dlopen(LOGIC_PATH, RTLD_NOW);
-    return dlsym(handle, "process");
 }
 
 int main(int argc, char **argv) {
     NOB_GO_REBUILD_URSELF(argc, argv);
+
+    Nob_Cmd generics_build = {0};
+    nob_cmd_append(&generics_build, "cc", "generics.c", "-o", "gen");
+    nob_cmd_run_sync(generics_build);
 
     process *logic = hotreload();
     

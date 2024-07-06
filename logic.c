@@ -29,16 +29,6 @@ int make_move(FIELD *dst, FIELD *src, int move, uint8_t fig)
 
 #define INAROW 3
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
-typedef struct Vec2d {
-    uint8_t x;
-    uint8_t y;
-} Vec2d;
-
-typedef struct Direction {
-    Vec2d point;
-    Vec2d dir;
-    uint8_t length;
-} Direction;
 
 int longest(FIELD *field, Direction arow, int fig) {
     int res = 0;

@@ -1,0 +1,16 @@
+#include <stdint.h>
+
+typedef struct Vec2d {
+    uint8_t x;
+    uint8_t y;
+} Vec2d;
+
+typedef struct Direction {
+    Vec2d point;
+    Vec2d dir;
+    uint8_t length;
+} Direction;
+
+Direction dirs[] = {
+%s
+};

@@ -41,7 +41,7 @@ int main(int argc, char **argv)
         length = MIN(i+1, FIELD_Y);
         if(length >= INAROW)
         {
-            char* direct = nob_temp_sprintf("    {.point={%d, 0}, .dir={-1, -1}, .length=%d},\n", i, length);
+            char* direct = nob_temp_sprintf("    {.point={%d, 0}, .dir={-1, 1}, .length=%d},\n", i, length);
             nob_da_append_many(&directions, direct, strlen(direct));
         }
 

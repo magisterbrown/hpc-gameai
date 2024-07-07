@@ -49,12 +49,31 @@ int is_win(FIELD *field, int figure){
     return 0;
 }
 
+#define next_fig(fig)  2-(fig>>1)
+
+int agi(FIELD *field, int figure) 
+{
+    return 0;
+}
+
+
+
 STATE *process(STATE *state, char input)
 {
     clear();
+    int lost = is_win(&state->field, state->figure);
+    if(lost) 
+        printf("%d has won\n", state->figure);
+
     STATE *next = state;
     switch(input)
     {
+        case 'a':
+            printf("AGI invoked\n");
+            if(lost)
+                break;
+            printf("AGI suggests move: %d", agi(&state->field, state->figure));
+            break;
         case 'b':
             if(state->prev == NULL)
                 break;
@@ -68,15 +87,12 @@ STATE *process(STATE *state, char input)
                     printf("Illegal move\n");
                     break;
                 }
-                if(is_win(&state->field, state->figure)) 
-                {
-                    printf("%d has won\n", state->figure);
+                if(lost) 
                     break;
-                }
                 next = malloc(sizeof(STATE));
                 memcpy(&next->field, &state->field, sizeof(FIELD));
                 next->prev = state;
-                next->figure = 2-(state->figure>>1);
+                next->figure = next_fig(state->figure);
 
                 make_move(&next->field, &next->field, move, next->figure);
             break;

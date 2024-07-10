@@ -5,6 +5,7 @@
 #define ARENA_IMPLEMENTATION 
 #include "external/arena.h"
 #include <string.h>
+#include <assert.h>
 
 #define clear() printf("\033[H\033[J")
 
@@ -117,7 +118,7 @@ Block *stack_push(Block *stack, Horizont *el)
 {
     memcpy(&stack->elements[stack->top], el, sizeof(Horizont));
     stack->top++;
-    printf("Stack top %d\n", stack->top);
+    assert(stack->top<1024);
     return stack;
 }
 
@@ -164,6 +165,7 @@ int agi(FIELD *field, int figure)
 {
     static Arena nodes = {0};
     Node *root = arena_alloc(&nodes, sizeof(Node));
+    memset(&root->children, 0, sizeof(root->children));
     root->figure = figure;
     root->parrent = NULL;
     root->depth = 0;
@@ -176,7 +178,7 @@ int agi(FIELD *field, int figure)
     Block *bottom = stack_block_alloc(NULL);
     Block *top = stack_push(bottom, first);
     int j=0;
-    while(j++<300)
+    while(j++<3000)
     {
         Horizont oldest = {0};
         top = stack_pop(top, &oldest);
@@ -184,15 +186,16 @@ int agi(FIELD *field, int figure)
             break;
         //Horizont *oldest = first;
         Node *parrent = oldest.intree;
-        if(is_win(&oldest.field, parrent->figure))
+        int nfig = next_fig(parrent->figure);
+        if(is_win(&oldest.field, nfig))
         {
-            record_value(parrent, INAROW*(parrent->figure==1) - INAROW*(parrent->figure==2));
-            print_field(&oldest.field);
-            printf("Win %d\n", parrent->value);
+            record_value(parrent, INAROW*(nfig==1) - INAROW*(nfig==2));
+            //print_field(&oldest.field);
+            //printf("Win %d\n", parrent->value);
             continue;
         }
 
-        if(parrent->depth == 1)
+        if(parrent->depth == 3)
         {
             //TODO: Evaluate position 
             record_value(parrent, is_longest(&oldest.field, 1) - is_longest(&oldest.field, 2));
@@ -214,10 +217,15 @@ int agi(FIELD *field, int figure)
             stack_push(top, &oldest);
             Horizont *next = stack_peek(top);
             next->intree = child;
-            make_move(&next->field, &next->field, i, child->figure);
+            make_move(&next->field, &next->field, i, parrent->figure);
         }
     }
 
+    for(int i=0;i<FIELD_X;i++) 
+    {
+        if(root->children[i] != NULL)
+            printf("AGI thinks move %d is %d\n", i, root->children[i]->value);
+    }
     arena_free(&nodes);
     return root->value;
 }

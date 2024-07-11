@@ -66,77 +66,8 @@ typedef struct {
     Node *intree;
 } Horizont;
 
-#define STACK_BLOCK 1024
-typedef struct Block {
-    Horizont elements[STACK_BLOCK];
-    int top;
-    struct Block *prev;
-    struct Block *next;
-} Block;
-
-//#define push_stack(stack, 
-
-//Block *push_stack(Block *stack, Node *tree, FIELD *field)
-//{
-//    Block *res = stack;
-//    if(stack == NULL)
-//    {
-//        res = malloc(sizeof(Block));
-//        res->top = 0;
-//        res->prev = NULL;
-//        res->next = NULL;
-//    }
-//    else if(stack->top==STACK_BLOCK-1)
-//    {
-//        res = stack->next;
-//        if(res==NULL) 
-//            res = malloc(sizeof(Block));
-//        stack->next = res;
-//        res->top = 0;
-//        res->prev = stack;
-//        res->next = NULL;
-//    }
-//    else
-//        res->top++;
-//    Horizont *new = &res->elements[res->top];
-//    new->intree = tree;
-//    memcpy(&new->field, field, sizeof(FIELD));
-//    return res;
-//}
-
-Block *stack_block_alloc(Block *prev)
-{
-    Block *new = malloc(sizeof(Block));
-    new->top = 0;
-    new->next = NULL;
-    new->prev = prev;
-
-    return new;
-}
-
-Block *stack_push(Block *stack, Horizont *el)
-{
-    memcpy(&stack->elements[stack->top], el, sizeof(Horizont));
-    stack->top++;
-    assert(stack->top<1024);
-    return stack;
-}
-
-Horizont *stack_peek(Block *stack)
-{
-    if(stack->top == 0)
-        return NULL;
-    return &stack->elements[stack->top-1];
-}
-
-Block *stack_pop(Block *stack, Horizont *el)
-{
-    if(stack->top==0)
-        return NULL;    
-    stack->top--; 
-    memcpy(el, &stack->elements[stack->top], sizeof(Horizont));
-    return stack;
-}
+#define STACK_BLOCK 2
+#include "stack.h"
 
 int is_longest(FIELD *field, int figure){
     int res = 0;
@@ -164,6 +95,7 @@ void record_value(Node *leaf, int value)
 int agi(FIELD *field, int figure) 
 {
     static Arena nodes = {0};
+    //TODO: make node constructor
     Node *root = arena_alloc(&nodes, sizeof(Node));
     memset(&root->children, 0, sizeof(root->children));
     root->figure = figure;
@@ -171,53 +103,49 @@ int agi(FIELD *field, int figure)
     root->depth = 0;
     root->value = NO_VALUE;
 
-    Horizont *first = malloc(sizeof(Horizont));
-    first->intree = root;
-    memcpy(&first->field, field, sizeof(FIELD));
+    Horizont first = {0};
+    first.intree = root;
+    memcpy(&first.field, field, sizeof(FIELD));
 
     Block *bottom = stack_block_alloc(NULL);
-    Block *top = stack_push(bottom, first);
-    int j=0;
-    while(j++<3000)
+    Block *top = bottom;
+    bottom = stack_push(bottom, &first);
+    while(1)
     {
         Horizont oldest = {0};
         top = stack_pop(top, &oldest);
         if(top==NULL)
             break;
-        //Horizont *oldest = first;
         Node *parrent = oldest.intree;
         int nfig = next_fig(parrent->figure);
         if(is_win(&oldest.field, nfig))
         {
             record_value(parrent, INAROW*(nfig==1) - INAROW*(nfig==2));
-            //print_field(&oldest.field);
-            //printf("Win %d\n", parrent->value);
             continue;
         }
 
-        if(parrent->depth == 3)
+        if(parrent->depth == 4)
         {
-            //TODO: Evaluate position 
             record_value(parrent, is_longest(&oldest.field, 1) - is_longest(&oldest.field, 2));
-            //print_field(&oldest.field);
-            //printf("Heuristics %d\n", parrent->value);
             continue;
         }
         for(int i=0;i<FIELD_X;i++)
         {
-            if(illegal_move(oldest.field, i)) //TODO: check for legal move
+            if(illegal_move(oldest.field, i)) 
                 continue;
             Node *child = arena_alloc(&nodes, sizeof(Node));
+            //TODO: make node constructor
             child->figure = next_fig(parrent->figure);
             child->parrent = parrent;
             child->depth = parrent->depth+1;
             child->value = NO_VALUE;
-            parrent->children[i] = child; //TODO: set to null missing child pointers
+            memset(&child->children, 0, sizeof(child->children));
+            parrent->children[i] = child; 
             
-            stack_push(top, &oldest);
+            top = stack_push(top, &oldest);
             Horizont *next = stack_peek(top);
             next->intree = child;
-            make_move(&next->field, &next->field, i, parrent->figure);
+            make_move(&next->field, &oldest.field, i, parrent->figure);
         }
     }
 
@@ -226,8 +154,10 @@ int agi(FIELD *field, int figure)
         if(root->children[i] != NULL)
             printf("AGI thinks move %d is %d\n", i, root->children[i]->value);
     }
+    int res = root->value;
     arena_free(&nodes);
-    return root->value;
+    stack_free(bottom);
+    return res;
 }
 
 

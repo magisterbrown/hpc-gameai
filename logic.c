@@ -66,7 +66,7 @@ typedef struct {
     Node *intree;
 } Horizont;
 
-#define STACK_BLOCK 2
+#define STACK_BLOCK 1024
 #include "stack.h"
 
 int is_longest(FIELD *field, int figure){
@@ -81,13 +81,20 @@ int is_longest(FIELD *field, int figure){
 
 void record_value(Node *leaf, int value)
 {
-    while(leaf!=NULL){
-        if(leaf->value==NO_VALUE)
-            leaf->value = value;
-        else if((value>leaf->value && leaf->figure == 1) || (value<leaf->value && leaf->figure == 2 ))
-            leaf->value = value;
-        else
-            break;
+    int propogate = 1;
+    while(propogate && leaf!=NULL){
+        for(int i=0;i<FIELD_X;i++)
+        {
+            if(leaf->children[i] != NULL)
+            {
+                if(leaf->figure == 1)
+                    value = MAX(value, leaf->children[i]->value);
+                else
+                    value = MIN(value, leaf->children[i]->value);
+            }
+        }
+        propogate = leaf->value != value;
+        leaf->value = value;
         leaf = leaf->parrent;
     } 
 }
@@ -110,10 +117,12 @@ int agi(FIELD *field, int figure)
     Block *bottom = stack_block_alloc(NULL);
     Block *top = bottom;
     bottom = stack_push(bottom, &first);
+    int nodes_analyzed = 0;
     while(1)
     {
         Horizont oldest = {0};
         top = stack_pop(top, &oldest);
+        nodes_analyzed++;
         if(top==NULL)
             break;
         Node *parrent = oldest.intree;
@@ -124,7 +133,7 @@ int agi(FIELD *field, int figure)
             continue;
         }
 
-        if(parrent->depth == 4)
+        if(parrent->depth == 7)
         {
             record_value(parrent, is_longest(&oldest.field, 1) - is_longest(&oldest.field, 2));
             continue;
@@ -148,11 +157,11 @@ int agi(FIELD *field, int figure)
             make_move(&next->field, &oldest.field, i, parrent->figure);
         }
     }
-
+    printf("Moves analyzed %d\n", nodes_analyzed);
     for(int i=0;i<FIELD_X;i++) 
     {
         if(root->children[i] != NULL)
-            printf("AGI thinks move %d is %d\n", i, root->children[i]->value);
+            printf("AGI thinks move %d is %d\n", i+1, root->children[i]->value);
     }
     int res = root->value;
     arena_free(&nodes);
@@ -176,7 +185,7 @@ STATE *process(STATE *state, char input)
             printf("AGI invoked\n");
             if(lost)
                 break;
-            printf("AGI suggests move: %d\n", agi(&state->field, next_fig(state->figure)));
+            printf("AGI best value for %d: %d\n", next_fig(state->figure), agi(&state->field, next_fig(state->figure)));
             break;
         case 'b':
             if(state->prev == NULL)

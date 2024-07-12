@@ -83,21 +83,26 @@ void record_value(Node *leaf, int value)
 {
     int propogate = 1;
     while(propogate && leaf!=NULL){
-        for(int i=0;i<FIELD_X;i++)
+        if(leaf->value != NO_VALUE) 
         {
-            if(leaf->children[i] != NULL)
+            for(int i=0;i<FIELD_X;i++)
             {
-                if(leaf->figure == 1)
-                    value = MAX(value, leaf->children[i]->value);
-                else
-                    value = MIN(value, leaf->children[i]->value);
+                if(leaf->children[i] != NULL && leaf->children[i]->value != NO_VALUE)
+                {
+                    if(leaf->figure == 1)
+                        value = MAX(value, leaf->children[i]->value);
+                    else
+                        value = MIN(value, leaf->children[i]->value);
+                }
             }
+            propogate = leaf->value != value;
         }
-        propogate = leaf->value != value;
         leaf->value = value;
         leaf = leaf->parrent;
     } 
 }
+
+#define ALPHA_BETA
 
 int agi(FIELD *field, int figure) 
 {
@@ -122,18 +127,32 @@ int agi(FIELD *field, int figure)
     {
         Horizont oldest = {0};
         top = stack_pop(top, &oldest);
-        nodes_analyzed++;
         if(top==NULL)
             break;
         Node *parrent = oldest.intree;
+        #ifdef ALPHA_BETA
+        Node *grandparrent = parrent->parrent;
+        if(grandparrent != NULL && grandparrent->value != NO_VALUE)
+        {
+            Node *greatgrandparrent = parrent->parrent->parrent;
+            if(greatgrandparrent != NULL && greatgrandparrent->value != NO_VALUE)    
+            {
+                if(grandparrent->figure == 2 && grandparrent->value < greatgrandparrent->value)
+                    continue;
+                else if(grandparrent->figure == 1 && grandparrent->value > greatgrandparrent->value)
+                    continue;
+            }
+
+        }
+        #endif
+        nodes_analyzed++;
         int nfig = next_fig(parrent->figure);
         if(is_win(&oldest.field, nfig))
         {
             record_value(parrent, INAROW*(nfig==1) - INAROW*(nfig==2));
             continue;
         }
-
-        if(parrent->depth == 7)
+        if(parrent->depth == 8)
         {
             record_value(parrent, is_longest(&oldest.field, 1) - is_longest(&oldest.field, 2));
             continue;

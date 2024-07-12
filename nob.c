@@ -59,7 +59,7 @@ int main(int argc, char **argv) {
     process *logic = hotreload();
     
     STATE *field = calloc(1, sizeof(STATE));
-    field->figure = 1;
+    field->figure = 2;
     while(1){
        char inp = getchar();
        while(getchar()!='\n') {}
